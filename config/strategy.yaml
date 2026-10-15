@@ -1,0 +1,71 @@
+# Momentum breakout swing strategy — every tunable number lives here.
+# The backtester, the live scanner and Claude's scheduled runs all read this file,
+# so a change here changes the strategy everywhere at once.
+
+account:
+  starting_capital: 15000        # INR
+  risk_per_trade_pct: 1.5        # % of current equity lost if the initial stop is hit
+  max_positions: 3
+  max_position_pct: 40           # no single position may exceed this % of equity
+  max_drawdown_halt_pct: 10      # stop opening new trades once equity falls this far below its peak
+  halt_on_drawdown: false        # backtest only: false records when the limit is hit but keeps simulating,
+                                 # so the full history is measured. Live trading ALWAYS halts at the limit.
+
+market_filter:
+  index_symbol: NIFTY 50
+  ma_days: 200                   # new trades only while the index closes above this moving average
+
+universe:
+  min_price: 50                  # INR
+  min_avg_traded_value_cr: 5     # 20-day average daily traded value, in crore INR
+  min_history_days: 260          # need ~1 year of bars for the trend template
+
+trend_template:
+  # Minervini-style "stage 2 uptrend" checks
+  require_ma_stack: true         # close > SMA50 > SMA150 > SMA200
+  sma200_rising_days: 20         # SMA200 today above its value this many bars ago
+  min_above_52w_low_pct: 25      # close at least 25% above the 52-week low
+  max_below_52w_high_pct: 25     # close within 25% of the 52-week high
+  min_rs_percentile: 70          # relative-strength rank vs the universe (0-100)
+
+setup:
+  base_days: 15                  # length of the consolidation before the breakout
+  max_base_depth_pct: 12         # (base high - base low) / base high
+  max_atr_contraction: 1.0       # ATR(10)/ATR(50) at the signal must be <= this (tightening range)
+  breakout_volume_mult: 1.5      # breakout-day volume vs 50-day average volume
+  entry_mode: next_open          # next_open: breakout confirmed at close, buy next open
+                                 # stop_trigger: buy-stop at base high the next day (GTT style)
+  max_gap_pct: 3                 # next_open: skip if the open is this % above the signal close
+
+exits:
+  stop_buffer_pct: 0.5           # initial stop sits this % below the base low
+  min_stop_pct: 3                # widen stops tighter than this (noise protection)
+  max_stop_pct: 8                # skip the trade if the stop would be wider than this
+  target_r: 2.5                  # profit target at this multiple of initial risk
+  breakeven_at_r: 1.0            # move stop to entry once close reaches this R
+  trail_atr_mult: 3.0            # after breakeven, trail at highest close - N * ATR(14)
+  max_hold_days: 20              # exit at next open after this many trading days
+
+costs:
+  # Zerodha equity delivery. Verify against https://zerodha.com/charge-list before going live.
+  brokerage_pct: 0.0
+  stt_pct: 0.1                   # buy and sell
+  exchange_txn_pct: 0.00307      # NSE, buy and sell
+  sebi_fee_pct: 0.0001           # buy and sell
+  stamp_duty_pct: 0.015          # buy only
+  gst_pct: 18                    # on brokerage + exchange + SEBI fees
+  dp_charge_per_sell: 15.34      # INR per scrip per sell day, GST included
+  slippage_pct: 0.1              # adverse fill vs the modelled price, each side
+
+backtest:
+  start: "2012-01-01"
+  end: "2026-10-15"
+  in_sample_end: "2020-12-31"    # tune on data up to here; judge on data after it
+  monte_carlo_runs: 2000
+
+promotion:
+  # A strategy must clear all of these on the out-of-sample period before paper trading.
+  min_trades: 30
+  min_profit_factor: 1.3
+  min_expectancy_r: 0.15
+  max_drawdown_pct: 20
