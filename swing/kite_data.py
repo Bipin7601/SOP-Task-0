@@ -88,7 +88,8 @@ def download(symbols: list[str], index_symbol: str = "NIFTY 50") -> None:
     today = date.today()
     missing = []
     for n, sym in enumerate([index_symbol] + symbols, 1):
-        tok = tokens.get(sym)
+        # Stocks moved to the trade-to-trade segment are listed as e.g. HFCL-BE; same history, saved as HFCL
+        tok = next((tokens[s] for s in (sym, f"{sym}-BE", f"{sym}-BZ") if s in tokens), None)
         if tok is None:
             missing.append(sym)
             continue

@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from swing import backtest, config, costs, metrics, signals
-from swing.data import build_panel
+from swing.data import build_panel, clean_ohlcv
 
 from conftest import breakout_series, make_panel, ohlcv_from_close
 
@@ -159,3 +159,23 @@ def test_stop_trigger_mode_runs(cfg):
         k = p.dates.get_loc(t.entry_date)
         # bought at or above the prior base high, never inside the base
         assert t.entry_price >= p.high["AAA"].iloc[k - cfg2.setup.base_days:k].max()
+
+
+def test_clean_ohlcv_drops_placeholder_history():
+    idx = pd.bdate_range("2020-01-01", periods=6)
+    close = [0.15, 0.15, 0.0, 0.15, 553.0, 560.0]
+    df = pd.DataFrame({"open": close, "high": close, "low": close, "close": close, "volume": 1.0}, index=idx)
+    out = clean_ohlcv(df)
+    assert list(out.close) == [553.0, 560.0]
+    normal = df.iloc[4:].copy()
+    assert clean_ohlcv(normal).equals(normal)
+
+
+def test_special_sessions_missing_for_most_stocks_are_dropped():
+    idx = pd.bdate_range("2020-01-01", periods=10)
+    frame = lambda ix: pd.DataFrame({f: 100.0 for f in ("open", "high", "low", "close", "volume")}, index=ix)
+    special = idx[5]
+    frames = {"AAA": frame(idx.delete(5)), "BBB": frame(idx.delete(5)), "CCC": frame(idx)}
+    p = build_panel(frames, frame(idx))
+    assert special not in p.dates and len(p.dates) == 9
+    assert not p.close.isna().any().any()

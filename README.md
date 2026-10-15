@@ -9,8 +9,8 @@ daily routine through the Kite connector, and **every order needs a human yes**.
 | Phase | State |
 |---|---|
 | 1. Strategy code, simulator, tests | ✅ Built |
-| 2. Download history (Kite Connect data API) | ⏳ Waiting on API key |
-| 3. Backtest, in-sample vs out-of-sample, go/no-go | ⏳ Needs data |
+| 2. Download history (Kite Connect data API) | ✅ Done (497 stocks + NIFTY 50, 2010 onward) |
+| 3. Backtest, in-sample vs out-of-sample, go/no-go | ❌ First run FAILED out-of-sample (PF 0.66, −0.16R) |
 | 4. Paper trading, 4–6 weeks | — |
 | 5. Live with ₹15,000, approval on every trade | — |
 
